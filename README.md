@@ -1,75 +1,62 @@
-# React + TypeScript + Vite
+# PixiJS Playground
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A playground for trying out [PixiJS v8](https://pixijs.com/) with React through [`@pixi/react`](https://github.com/pixijs/pixi-react).
 
-Currently, two official plugins are available:
+It renders a top-down warehouse: a grid of shelves you can click, reach trucks driving back and forth, and a camera you move with the keyboard.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Stack
 
-## React Compiler
+- **PixiJS 8** and **@pixi/react 8**: rendering and JSX bindings (`<pixiSprite>`, `<pixiContainer>`, …)
+- **React 19** and **TypeScript 6**
+- **Vite 8**: dev server and build
+- **ESLint** and **Prettier**
+- **pnpm**: package manager
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Getting started
 
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
+```bash
+pnpm install
+pnpm dev        # start the dev server
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Other scripts:
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+```bash
+pnpm build      # type-check and build for production
+pnpm preview    # serve the production build locally
+pnpm lint       # run ESLint
+```
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## Controls
+
+| Input              | Action                                   |
+| ------------------ | ---------------------------------------- |
+| `W` `A` `S` `D`    | Move the camera around the warehouse     |
+| Click a shelf      | Cycle its state (how full it is)         |
+| `i` button         | Show the controls help panel             |
+
+## Project structure
 
 ```
+src/
+  main.tsx              Entry point: registers Pixi classes with extend(), preloads assets, mounts the app
+  App.tsx               Root component: the Pixi canvas plus the info button
+  Pixi.tsx              The scene: <Application>, the shelf grid, and the trucks
+  Camera.tsx            Container that pans with WASD, clamped to the content bounds (plus overscroll)
+  Shelf.tsx             Clickable sprite that cycles through texture states
+  ReachTruck.tsx        Truck that drives left and right within a range, with frame animation
+  IconSprite.tsx        Static sprite read from the asset cache
+  ExhibitionStand.tsx   Splits one texture into frames with Rectangle (experiment)
+  ChristmasTree.tsx     Textures generated at runtime with renderer.generateTexture (experiment)
+  Bar3D.tsx, iso.ts     Pseudo-3D bars drawn with Graphics, plus a color-shading helper
+  InfoButton.tsx        Controls help overlay (HTML, outside the canvas)
+  assets/               Sprites (.webp) and lists of the texture states for each object
+prompts/                Prompts and a style guide for AI-generated sprites
+```
+
+## Notes
+
+- **Assets are preloaded** in `main.tsx` with `Assets.load()` before React mounts, so components read textures synchronously with `Assets.get()`. When you add a new sprite, add it to that preload list too.
+- **Pixi classes are registered once** with `extend()` in `main.tsx`. Register any new Pixi class there before you use it as a JSX tag.
+- **StrictMode is off on purpose**: its double mount in dev re-creates `<Application>` asynchronously, and `app.renderer` is briefly `null`, which breaks runtime texture generation.
+- **Sprites follow a shared art style**: a steep top-down view (about 65–70° camera tilt), not true isometric. See `prompts/00-style-guide.md` before you generate new assets.
